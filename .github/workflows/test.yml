@@ -1,0 +1,77 @@
+name: Run Test
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!main'
+    paths:
+      - '**.go'
+  pull_request:
+    branches:
+      - develop
+      - main
+    types:
+      - opened
+    paths:
+      - '**.go'
+  workflow_dispatch:
+
+jobs:
+  go-test:
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+      - name: Set up Go 1.21.3
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.21.3
+
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          go mod tidy
+          cd http
+          go mod tidy
+          cd ../gs
+          go mod tidy
+          cd ../s3
+          go mod tidy
+          cd ..
+
+      # Runs a single command using the runners shell
+      - name: compose-run
+        shell: bash
+        run: |
+          cd docker
+          docker-compose up -d
+          cd ..
+          sleep 2
+
+      - name: Run tests
+        run: |
+          cd testdata
+          go test ./...
+          cd ..
+
+      - name: clean
+        if: always()
+        run: |
+          cd docker
+          docker-compose down
+          cd ..

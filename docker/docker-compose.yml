@@ -1,0 +1,24 @@
+services:
+  # s3
+  s3:
+    image: adobe/s3mock:latest
+    environment:
+      initialBuckets: test-bucket
+      root: /data
+      debug: "true"
+      trace: "false"
+      retainFileOnExit: "false"
+    ports:
+      - "9090:9090"
+      - "9191:9191"
+    volumes:
+      - "./s3/data:/data"
+  # gs
+  gs:
+    image: fsouza/fake-gcs-server:latest
+    ports:
+      - "4443:4443"
+      - "8000:8000"
+    volumes:
+      - "./gs/storage:/storage"
+    command: --scheme http --port 8000 --public-host localhost:8000 --filesystem-root /storage
