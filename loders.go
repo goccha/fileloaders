@@ -120,3 +120,29 @@ func (m *MapLoader) List(ctx context.Context, path string) ([]string, error) {
 	}
 	return loader.List(ctx, path)
 }
+
+type FilePath struct {
+	Type   string
+	Bucket string
+	Path   string
+}
+
+func Parse(path string) *FilePath {
+	index := strings.Index(path, "://")
+	if index < 0 {
+		return nil
+	}
+	prefix := path[:index]
+	path = path[index+3:]
+	index = strings.Index(path, "/")
+	if index < 0 {
+		return nil
+	}
+	bucket := path[:index]
+	path = path[index+1:]
+	return &FilePath{
+		Type:   prefix,
+		Bucket: bucket,
+		Path:   path,
+	}
+}

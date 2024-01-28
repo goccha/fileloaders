@@ -1,9 +1,8 @@
-package s3
+package s3loader
 
 import (
 	"context"
 	"io"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -16,14 +15,13 @@ type Client interface {
 }
 
 func Load(ctx context.Context, api Client, path string) ([]byte, error) {
-	path = strings.TrimPrefix(path, "s3://")
-	path = strings.TrimPrefix(path, "/")
-	bucketIndex := strings.Index(path, "/")
-	bucket := path[:bucketIndex]
-	file := path[bucketIndex+1:]
+	filePath := fileloaders.Parse(path)
+	if filePath == nil || filePath.Type != "s3" || filePath.Bucket == "" {
+		return nil, fileloaders.ErrNotSupported
+	}
 	result, err := api.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(file),
+		Bucket: aws.String(filePath.Bucket),
+		Key:    aws.String(filePath.Path),
 	})
 	if err != nil {
 		return nil, err
@@ -35,16 +33,15 @@ func Load(ctx context.Context, api Client, path string) ([]byte, error) {
 }
 
 func List(ctx context.Context, api Client, path string) ([]string, error) {
-	path = strings.TrimPrefix(path, "s3://")
-	path = strings.TrimPrefix(path, "/")
-	bucketIndex := strings.Index(path, "/")
-	bucket := path[:bucketIndex]
-	prefix := path[bucketIndex+1:]
-	in := &s3.ListObjectsV2Input{
-		Bucket: aws.String(bucket),
+	filePath := fileloaders.Parse(path)
+	if filePath == nil || filePath.Type != "s3" || filePath.Bucket == "" {
+		return nil, fileloaders.ErrNotSupported
 	}
-	if prefix != "" {
-		in.Prefix = aws.String(prefix)
+	in := &s3.ListObjectsV2Input{
+		Bucket: aws.String(filePath.Bucket),
+	}
+	if filePath.Path != "" {
+		in.Prefix = aws.String(filePath.Path)
 	}
 	out, err := api.ListObjectsV2(ctx, in)
 	if err != nil {
