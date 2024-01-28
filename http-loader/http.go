@@ -1,4 +1,4 @@
-package http
+package httploader
 
 import (
 	"context"

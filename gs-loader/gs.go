@@ -1,10 +1,9 @@
-package gs
+package gsloader
 
 import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/goccha/fileloaders"
@@ -16,13 +15,12 @@ type Client interface {
 }
 
 func Load(ctx context.Context, api Client, path string) ([]byte, error) {
-	path = strings.TrimPrefix(path, "gs://")
-	path = strings.TrimPrefix(path, "/")
-	bucketIndex := strings.Index(path, "/")
-	bucket := path[:bucketIndex]
-	file := path[bucketIndex+1:]
-	bucketHandle := api.Bucket(bucket)
-	reader, err := bucketHandle.Object(file).NewReader(ctx)
+	filePath := fileloaders.Parse(path)
+	if filePath == nil || filePath.Type != "gs" || filePath.Bucket == "" {
+		return nil, fileloaders.ErrNotSupported
+	}
+	bucketHandle := api.Bucket(filePath.Bucket)
+	reader, err := bucketHandle.Object(filePath.Path).NewReader(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -32,14 +30,13 @@ func Load(ctx context.Context, api Client, path string) ([]byte, error) {
 	return io.ReadAll(reader)
 }
 func List(ctx context.Context, api Client, path string) ([]string, error) {
-	path = strings.TrimPrefix(path, "gs://")
-	path = strings.TrimPrefix(path, "/")
-	bucketIndex := strings.Index(path, "/")
-	bucket := path[:bucketIndex]
-	prefix := path[bucketIndex+1:]
-	bucketHandle := api.Bucket(bucket)
+	filePath := fileloaders.Parse(path)
+	if filePath == nil || filePath.Type != "gs" || filePath.Bucket == "" {
+		return nil, fileloaders.ErrNotSupported
+	}
+	bucketHandle := api.Bucket(filePath.Bucket)
 	iter := bucketHandle.Objects(ctx, &storage.Query{
-		Prefix: prefix,
+		Prefix: filePath.Path,
 	})
 	var result []string
 	for {
