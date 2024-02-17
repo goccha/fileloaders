@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/smithy-go/logging"
 	"github.com/goccha/fileloaders"
 	"github.com/goccha/fileloaders/github-loader"
@@ -74,6 +75,38 @@ func setupSsm(ctx context.Context) error {
 		o.BaseEndpoint = aws.String(endpoint)
 	})
 	fileloaders.Setup(ssmloader.With(client))
+	if _, err = client.PutParameter(ctx, &ssm.PutParameterInput{
+		Name:      aws.String("/parameter/test"),
+		Type:      types.ParameterTypeString,
+		Value:     aws.String("value/fileloaders/test"),
+		Overwrite: aws.Bool(true),
+	}); err != nil {
+		return err
+	}
+	if _, err = client.PutParameter(ctx, &ssm.PutParameterInput{
+		Name:      aws.String("/parameter/test1"),
+		Type:      types.ParameterTypeString,
+		Value:     aws.String("value/fileloaders/test1"),
+		Overwrite: aws.Bool(true),
+	}); err != nil {
+		return err
+	}
+	if _, err = client.PutParameter(ctx, &ssm.PutParameterInput{
+		Name:      aws.String("/parameter1/test"),
+		Type:      types.ParameterTypeString,
+		Value:     aws.String("value/fileloaders/test"),
+		Overwrite: aws.Bool(true),
+	}); err != nil {
+		return err
+	}
+	if _, err = client.PutParameter(ctx, &ssm.PutParameterInput{
+		Name:      aws.String("/parameter1/secure"),
+		Type:      types.ParameterTypeSecureString,
+		Value:     aws.String("secure-value/fileloaders/test"),
+		Overwrite: aws.Bool(true),
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -225,6 +258,7 @@ func TestSsm(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(list) != 2 {
+		t.Log(list)
 		t.Fatal("invalid ssm list")
 	}
 	bin, err := fileloaders.Load(context.Background(), "ssm://parameter1/test")
