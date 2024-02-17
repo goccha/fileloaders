@@ -22,3 +22,17 @@ services:
     volumes:
       - "./gs/storage:/storage"
     command: --scheme http --port 8000 --public-host localhost:8000 --filesystem-root /storage
+  # sms
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      HOSTNAME_EXTERNAL: localstack
+      DEFAULT_REGION: ap-northeast-1
+      DATA_DIR: /tmp/localstack/data
+      DEBUG: 1
+      DISABLE_CORS_CHECKS: 1
+    ports:
+      - "4566:4566"
+    volumes:
+      - "./localstack:/etc/localstack/init/ready.d"
+      - "./localstack/data:/var/lib/localstack"

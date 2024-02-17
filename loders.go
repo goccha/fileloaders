@@ -135,10 +135,10 @@ func Parse(path string) *FilePath {
 	prefix := path[:index]
 	path = path[index+3:]
 	index = strings.Index(path, "/")
-	if index < 0 {
-		return nil
+	var bucket string
+	if index >= 0 {
+		bucket = path[:index]
 	}
-	bucket := path[:index]
 	path = path[index+1:]
 	return &FilePath{
 		Type:   prefix,
