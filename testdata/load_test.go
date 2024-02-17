@@ -17,12 +17,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/smithy-go/logging"
 	"github.com/goccha/fileloaders"
 	"github.com/goccha/fileloaders/github-loader"
 	"github.com/goccha/fileloaders/gs-loader"
 	"github.com/goccha/fileloaders/http-loader"
 	"github.com/goccha/fileloaders/s3-loader"
+	"github.com/goccha/fileloaders/ssm-loader"
 	"github.com/google/go-github/v56/github"
 	"google.golang.org/api/option"
 )
@@ -35,7 +37,6 @@ func setupS3(ctx context.Context) error {
 	var err error
 	var cfg aws.Config
 	if cfg, err = config.LoadDefaultConfig(ctx, config.WithRegion(region),
-		//config.WithClientLogMode(logLevel),
 		config.WithLogger(logging.NewStandardLogger(os.Stdout)), config.WithLogConfigurationWarnings(true),
 	); err != nil {
 		return err
@@ -53,6 +54,26 @@ func setupS3(ctx context.Context) error {
 	}); err != nil {
 		return err
 	}
+	return nil
+}
+
+func setupSsm(ctx context.Context) error {
+	region := "ap-northeast-1"
+	//logLevel := aws.LogSigning | aws.LogRequestWithBody | aws.LogResponseWithBody | aws.LogRetries
+	_ = os.Setenv("AWS_ACCESS_KEY_ID", "dummy")
+	_ = os.Setenv("AWS_SECRET_ACCESS_KEY", "dummy")
+	var err error
+	var cfg aws.Config
+	if cfg, err = config.LoadDefaultConfig(ctx, config.WithRegion(region),
+		config.WithLogger(logging.NewStandardLogger(os.Stdout)), config.WithLogConfigurationWarnings(true),
+	); err != nil {
+		return err
+	}
+	endpoint := "http://localhost:4566"
+	client := ssm.NewFromConfig(cfg, func(o *ssm.Options) {
+		o.BaseEndpoint = aws.String(endpoint)
+	})
+	fileloaders.Setup(ssmloader.With(client))
 	return nil
 }
 
@@ -192,6 +213,35 @@ func TestGs(t *testing.T) {
 	if string(bin) != "# README" {
 		t.Fatal("invalid load")
 	}
+}
+
+func TestSsm(t *testing.T) {
+	ctx := context.Background()
+	if err := setupSsm(ctx); err != nil {
+		t.Fatal(err)
+	}
+	list, err := fileloaders.List(ctx, "ssm://parameter/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 2 {
+		t.Fatal("invalid ssm list")
+	}
+	bin, err := fileloaders.Load(context.Background(), "ssm://parameter1/test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(bin) != "value/fileloaders/test" {
+		t.Fatal("invalid load")
+	}
+	bin, err = fileloaders.Load(context.Background(), "ssm://parameter1/secure")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(bin) != "secure-value/fileloaders/test" {
+		t.Fatal("invalid load")
+	}
+
 }
 
 func TestGithub(t *testing.T) {
