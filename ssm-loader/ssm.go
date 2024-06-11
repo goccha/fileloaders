@@ -79,11 +79,11 @@ type Loader struct {
 	client Client
 }
 
-func (l *Loader) Load(ctx context.Context, path string) ([]byte, error) {
+func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
 	return Load(ctx, l.client, path)
 }
 
-func (l *Loader) List(ctx context.Context, path string) ([]string, error) {
+func (l *Loader) List(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]string, error) {
 	return List(ctx, l.client, path)
 }
 

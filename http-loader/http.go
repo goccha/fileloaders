@@ -24,7 +24,9 @@ func Load(c Client, path string) ([]byte, error) {
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(res.Status)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	return io.ReadAll(res.Body)
 }
 
@@ -32,10 +34,10 @@ type Loader struct {
 	client Client
 }
 
-func (l *Loader) Load(ctx context.Context, path string) ([]byte, error) {
+func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
 	return Load(l.client, path)
 }
-func (l *Loader) List(ctx context.Context, path string) ([]string, error) {
+func (l *Loader) List(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]string, error) {
 	return nil, fileloaders.ErrNotSupported
 }
 
