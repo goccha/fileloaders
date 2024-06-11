@@ -7,12 +7,47 @@ import (
 	"strings"
 
 	"github.com/goccha/fileloaders"
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v62/github"
 )
 
 type Loader struct {
 	client *github.Client
 }
+
+type LoaderBuilder struct {
+	client *github.Client
+}
+
+func (b *LoaderBuilder) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
+	loader := &Loader{}
+	for _, v := range opt {
+		v(loader)
+	}
+	if loader.client == nil {
+		loader.client = b.client
+	}
+	return loader.Load(ctx, path)
+}
+func (b *LoaderBuilder) List(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]string, error) {
+	loader := &Loader{}
+	for _, v := range opt {
+		v(loader)
+	}
+	if loader.client == nil {
+		loader.client = b.client
+	}
+	return loader.List(ctx, path)
+}
+
+func WithAuthToken(token string) fileloaders.LoaderOption {
+	return func(l fileloaders.Loader) {
+		if v, ok := l.(*Loader); ok {
+			v.client = github.NewClient(http.DefaultClient).WithAuthToken(token)
+		}
+	}
+}
+
+type Builder func() *github.Client
 
 func Load(ctx context.Context, c *github.Client, path string) ([]byte, error) {
 	filePath := fileloaders.Parse(path)
@@ -68,22 +103,28 @@ func List(ctx context.Context, c *github.Client, path string) ([]string, error) 
 	return result, nil
 }
 
-func New(c *github.Client) *Loader {
-	return &Loader{
+func New(c *github.Client) fileloaders.Loader {
+	return &LoaderBuilder{
 		client: c,
 	}
 }
 
-func (l *Loader) Load(ctx context.Context, path string) ([]byte, error) {
+func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
 	return Load(ctx, l.client, path)
 }
 
-func (l *Loader) List(ctx context.Context, path string) ([]string, error) {
+func (l *Loader) List(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]string, error) {
 	return List(ctx, l.client, path)
 }
 
-func With(api *github.Client) fileloaders.Option {
+func WithClient(api *github.Client) fileloaders.Option {
 	return func(m map[string]fileloaders.Loader) {
 		m["github"] = New(api)
+	}
+}
+
+func With() fileloaders.Option {
+	return func(m map[string]fileloaders.Loader) {
+		m["github"] = New(nil)
 	}
 }

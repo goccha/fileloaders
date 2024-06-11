@@ -26,7 +26,7 @@ import (
 	"github.com/goccha/fileloaders/http-loader"
 	"github.com/goccha/fileloaders/s3-loader"
 	"github.com/goccha/fileloaders/ssm-loader"
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v62/github"
 	"google.golang.org/api/option"
 )
 
@@ -157,7 +157,7 @@ func setupGithub(ctx context.Context, baseUrl *url.URL) error {
 			cli.BaseURL = baseUrl
 		}
 	}
-	fileloaders.Setup(githubloader.With(cli))
+	fileloaders.Setup(githubloader.WithClient(cli))
 	return nil
 }
 

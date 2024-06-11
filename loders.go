@@ -12,6 +12,8 @@ var ErrNotSupported = errors.New("does not supported")
 type LoaderFunc func(ctx context.Context, path string) ([]byte, error)
 type ListFunc func(ctx context.Context, path string) ([]string, error)
 
+type Option func(m map[string]Loader)
+
 func Setup(options ...Option) {
 	if root == nil {
 		root = New(options...)
@@ -34,9 +36,9 @@ func New(options ...Option) *MapLoader {
 
 var root *MapLoader
 
-func Load(ctx context.Context, path string) ([]byte, error) {
+func Load(ctx context.Context, path string, opt ...LoaderOption) ([]byte, error) {
 	if root != nil {
-		if v, err := root.Load(ctx, path); err != nil {
+		if v, err := root.Load(ctx, path, opt...); err != nil {
 			if !errors.Is(err, ErrNotSupported) {
 				return nil, err
 			}
@@ -47,9 +49,9 @@ func Load(ctx context.Context, path string) ([]byte, error) {
 	return LoadFile(ctx, path)
 }
 
-func List(ctx context.Context, path string) ([]string, error) {
+func List(ctx context.Context, path string, opt ...LoaderOption) ([]string, error) {
 	if root != nil {
-		if v, err := root.List(ctx, path); err != nil {
+		if v, err := root.List(ctx, path, opt...); err != nil {
 			if !errors.Is(err, ErrNotSupported) {
 				return nil, err
 			}
@@ -78,18 +80,18 @@ func ListFile(ctx context.Context, path string) ([]string, error) {
 	return result, nil
 }
 
-type Loader interface {
-	Load(ctx context.Context, path string) ([]byte, error)
-	List(ctx context.Context, path string) ([]string, error)
-}
+type LoaderOption func(loader Loader)
 
-type Option func(m map[string]Loader)
+type Loader interface {
+	Load(ctx context.Context, path string, opt ...LoaderOption) ([]byte, error)
+	List(ctx context.Context, path string, opt ...LoaderOption) ([]string, error)
+}
 
 type MapLoader struct {
 	loaders map[string]Loader
 }
 
-func (m *MapLoader) Load(ctx context.Context, path string) ([]byte, error) {
+func (m *MapLoader) Load(ctx context.Context, path string, opt ...LoaderOption) ([]byte, error) {
 	index := strings.Index(path, "://")
 	var prefix string
 	if index > 0 {
@@ -102,10 +104,10 @@ func (m *MapLoader) Load(ctx context.Context, path string) ([]byte, error) {
 		}
 		return nil, ErrNotSupported
 	}
-	return loader.Load(ctx, path)
+	return loader.Load(ctx, path, opt...)
 }
 
-func (m *MapLoader) List(ctx context.Context, path string) ([]string, error) {
+func (m *MapLoader) List(ctx context.Context, path string, opt ...LoaderOption) ([]string, error) {
 	index := strings.Index(path, "://")
 	var prefix string
 	if index > 0 {
@@ -118,7 +120,7 @@ func (m *MapLoader) List(ctx context.Context, path string) ([]string, error) {
 		}
 		return nil, ErrNotSupported
 	}
-	return loader.List(ctx, path)
+	return loader.List(ctx, path, opt...)
 }
 
 type FilePath struct {
