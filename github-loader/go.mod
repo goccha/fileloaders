@@ -3,7 +3,7 @@ module github.com/goccha/fileloaders/github-loader
 go 1.21
 
 require (
-	github.com/goccha/fileloaders v0.0.1-alpha.4
+	github.com/goccha/fileloaders v0.0.1-alpha.5
 	github.com/google/go-github/v62 v62.0.0
 )
 
