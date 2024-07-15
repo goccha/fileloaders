@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/goccha/fileloaders"
@@ -57,16 +58,22 @@ func Load(ctx context.Context, c *github.Client, path string) ([]byte, error) {
 	repoIndex := strings.Index(filePath.Path, "/")
 	repo := filePath.Path[:repoIndex]
 	filepath := filePath.Path[repoIndex+1:]
-
-	file, _, res, err := c.Repositories.GetContents(ctx, filePath.Bucket, repo, filepath, nil)
+	var opts *github.RepositoryContentGetOptions
+	if index := strings.LastIndex(filepath, "?"); index > 0 {
+		if query, err := url.ParseQuery(filepath[index+1:]); err != nil {
+			return nil, err
+		} else if query.Has("ref") {
+			opts = &github.RepositoryContentGetOptions{Ref: query.Get("ref")}
+		}
+		filepath = filepath[:index]
+	}
+	file, _, res, err := c.Repositories.GetContents(ctx, filePath.Bucket, repo, filepath, opts)
 	if err != nil {
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(res.Status)
 	}
-	//defer file.Close()
-	//return io.ReadAll(file)
 	v, err := file.GetContent()
 	if err != nil {
 		return nil, err
