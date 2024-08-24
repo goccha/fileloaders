@@ -5,7 +5,7 @@ go 1.21.3
 require (
 	github.com/aws/aws-sdk-go-v2 v1.30.4
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.60.1
-	github.com/goccha/fileloaders v0.0.1-alpha.5
+	github.com/goccha/fileloaders v0.0.1-alpha.6
 )
 
 require (

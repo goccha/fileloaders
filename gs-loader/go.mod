@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	cloud.google.com/go/storage v1.43.0
-	github.com/goccha/fileloaders v0.0.1-alpha.5
+	github.com/goccha/fileloaders v0.0.1-alpha.6
 	google.golang.org/api v0.194.0
 )
 

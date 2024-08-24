@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.60.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.52.6
 	github.com/aws/smithy-go v1.20.4
-	github.com/goccha/fileloaders v0.0.1-alpha.5
+	github.com/goccha/fileloaders v0.0.1-alpha.6
 	github.com/goccha/fileloaders/github-loader v0.0.0-00010101000000-000000000000
 	github.com/goccha/fileloaders/gs-loader v0.0.0-20200522141810-8b9b9c9b1b0e
 	github.com/goccha/fileloaders/http-loader v0.0.0-20200522141810-8b9b9c9b1b0e
