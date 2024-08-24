@@ -162,11 +162,11 @@ func setupGithub(ctx context.Context, baseUrl *url.URL) error {
 }
 
 func TestLoad(t *testing.T) {
-	bin, err := fileloaders.Load(context.Background(), "../README.md")
+	file, err := fileloaders.Load(context.Background(), "../README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := bufio.NewScanner(bytes.NewReader(bin))
+	s := bufio.NewScanner(file.Reader())
 	if s.Scan() {
 		v := s.Text()
 		if v != "# fileloaders" {
@@ -190,11 +190,11 @@ func TestHttp(t *testing.T) {
 	defer ts.Close()
 	fileloaders.Setup(httploader.With(http.DefaultClient))
 
-	bin, err := fileloaders.Load(context.Background(), ts.URL+"/README.md")
+	file, err := fileloaders.Load(context.Background(), ts.URL+"/README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(bin) != "# README" {
+	if string(file.GetBody()) != "# README" {
 		t.Fatal("invalid load")
 	}
 }
@@ -212,11 +212,11 @@ func TestS3(t *testing.T) {
 		t.Fatal("invalid s3 list")
 	}
 
-	bin, err := fileloaders.Load(context.Background(), "s3://test-bucket/README.md")
+	file, err := fileloaders.Load(context.Background(), "s3://test-bucket/README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(bin) != "# README" {
+	if string(file.GetBody()) != "# README" {
 		t.Fatal("invalid load")
 	}
 }
@@ -239,11 +239,11 @@ func TestGs(t *testing.T) {
 	if len(list) != 1 {
 		t.Fatal("invalid gs list")
 	}
-	bin, err := fileloaders.Load(context.Background(), "gs://test-bucket/README.md")
+	file, err := fileloaders.Load(context.Background(), "gs://test-bucket/README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(bin) != "# README" {
+	if string(file.GetBody()) != "# README" {
 		t.Fatal("invalid load")
 	}
 }
@@ -261,21 +261,20 @@ func TestSsm(t *testing.T) {
 		t.Log(list)
 		t.Fatal("invalid ssm list")
 	}
-	bin, err := fileloaders.Load(context.Background(), "ssm://parameter1/test")
+	file, err := fileloaders.Load(context.Background(), "ssm://parameter1/test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(bin) != "value/fileloaders/test" {
+	if string(file.GetBody()) != "value/fileloaders/test" {
 		t.Fatal("invalid load")
 	}
-	bin, err = fileloaders.Load(context.Background(), "ssm://parameter1/secure")
+	file, err = fileloaders.Load(context.Background(), "ssm://parameter1/secure")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(bin) != "secure-value/fileloaders/test" {
+	if string(file.GetBody()) != "secure-value/fileloaders/test" {
 		t.Fatal("invalid load")
 	}
-
 }
 
 func TestGithub(t *testing.T) {
@@ -416,11 +415,11 @@ func TestGithub(t *testing.T) {
 		t.Fatal("invalid gs list")
 	}
 
-	bin, err := fileloaders.Load(ctx, "github://goccha/fileloaders/README.md")
+	file, err := fileloaders.Load(ctx, "github://goccha/fileloaders/README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(bin) != "# fileloaders" {
+	if string(file.GetBody()) != "# fileloaders" {
 		t.Fatal("invalid load")
 	}
 }

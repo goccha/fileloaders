@@ -54,6 +54,8 @@ jobs:
           go mod tidy
           cd ../github-loader
           go mod tidy
+          cd ../ssm-loader
+          go mod tidy
           cd ../testdata
           go mod tidy
           cd ..
