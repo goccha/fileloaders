@@ -25,14 +25,14 @@ jobs:
 
     steps:
       - name: Set up Go 1.21.6
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: 1.21.6
 
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         id: cache
         with:
           path: |
@@ -54,6 +54,8 @@ jobs:
           go mod tidy
           cd ../github-loader
           go mod tidy
+          cd ../ssm-loader
+          go mod tidy
           cd ../testdata
           go mod tidy
           cd ..
@@ -63,7 +65,7 @@ jobs:
         shell: bash
         run: |
           cd docker
-          docker-compose up -d
+          docker compose up -d
           cd ..
           sleep 2
 
@@ -77,5 +79,5 @@ jobs:
         if: always()
         run: |
           cd docker
-          docker-compose down
+          docker compose down
           cd ..

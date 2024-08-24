@@ -3,6 +3,8 @@ package s3loader
 import (
 	"context"
 	"io"
+	"net/url"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -14,14 +16,23 @@ type Client interface {
 	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
 }
 
-func Load(ctx context.Context, api Client, path string) ([]byte, error) {
-	filePath := fileloaders.Parse(path)
-	if filePath == nil || filePath.Type != "s3" || filePath.Bucket == "" {
+func Load(ctx context.Context, api Client, path string) (*fileloaders.File, error) {
+	file := fileloaders.Parse(path)
+	if file == nil || file.Type != "s3" || file.Bucket == "" {
 		return nil, fileloaders.ErrNotSupported
 	}
+	var version *string
+	if index := strings.LastIndex(file.Path, "?"); index > 0 {
+		if query, err := url.ParseQuery(file.Path[index+1:]); err != nil {
+			return nil, err
+		} else if query.Has("version") {
+			version = aws.String(query.Get("version"))
+		}
+	}
 	result, err := api.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(filePath.Bucket),
-		Key:    aws.String(filePath.Path),
+		Bucket:    aws.String(file.Bucket),
+		Key:       aws.String(file.Path),
+		VersionId: version,
 	})
 	if err != nil {
 		return nil, err
@@ -29,7 +40,13 @@ func Load(ctx context.Context, api Client, path string) ([]byte, error) {
 	defer func() {
 		_ = result.Body.Close()
 	}()
-	return io.ReadAll(result.Body)
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		return nil, err
+	}
+	return file.WriteBody(body).Add(
+		fileloaders.WithHash(result.ETag),
+		fileloaders.WithVersion(result.VersionId)), nil
 }
 
 func List(ctx context.Context, api Client, path string) ([]string, error) {
@@ -58,7 +75,7 @@ type Loader struct {
 	client Client
 }
 
-func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
+func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) (*fileloaders.File, error) {
 	return Load(ctx, l.client, path)
 }
 

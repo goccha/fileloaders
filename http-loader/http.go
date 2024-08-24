@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/goccha/fileloaders"
 )
@@ -13,9 +14,13 @@ type Client interface {
 	Get(url string) (resp *http.Response, err error)
 }
 
-func Load(c Client, path string) ([]byte, error) {
+func Load(c Client, path string) (*fileloaders.File, error) {
 	if c == nil {
 		c = http.DefaultClient
+	}
+	u, err := url.Parse(path)
+	if err != nil {
+		return nil, err
 	}
 	res, err := c.Get(path)
 	if err != nil {
@@ -27,14 +32,23 @@ func Load(c Client, path string) ([]byte, error) {
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	return io.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	file := &fileloaders.File{
+		Type:   u.Scheme,
+		Bucket: u.Host,
+		Path:   u.Path,
+	}
+	return file.WriteBody(body), nil
 }
 
 type Loader struct {
 	client Client
 }
 
-func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
+func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) (*fileloaders.File, error) {
 	return Load(l.client, path)
 }
 func (l *Loader) List(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]string, error) {

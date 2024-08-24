@@ -2,6 +2,7 @@ package ssmloader
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -14,16 +15,16 @@ type Client interface {
 	DescribeParameters(ctx context.Context, params *ssm.DescribeParametersInput, optFns ...func(*ssm.Options)) (*ssm.DescribeParametersOutput, error)
 }
 
-func Load(ctx context.Context, api Client, path string) ([]byte, error) {
-	filePath := fileloaders.Parse(path)
-	if filePath == nil || filePath.Type != "ssm" || filePath.Bucket == "" {
+func Load(ctx context.Context, api Client, path string) (*fileloaders.File, error) {
+	file := fileloaders.Parse(path)
+	if file == nil || file.Type != "ssm" || file.Bucket == "" {
 		return nil, fileloaders.ErrNotSupported
 	}
 	var key string
-	if filePath.Bucket != "" {
-		key = "/" + filePath.Bucket + "/" + filePath.Path
+	if file.Bucket != "" {
+		key = "/" + file.Bucket + "/" + file.Path
 	} else {
-		key = "/" + filePath.Path
+		key = "/" + file.Path
 	}
 	out, err := api.GetParameter(ctx, &ssm.GetParameterInput{
 		Name:           aws.String(key),
@@ -32,10 +33,16 @@ func Load(ctx context.Context, api Client, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if out.Parameter != nil || out.Parameter.Value != nil {
-		return []byte(*out.Parameter.Value), nil
+	if out.Parameter != nil {
+		if out.Parameter.Version > 0 {
+			version := strconv.Itoa(int(out.Parameter.Version))
+			file = file.Add(fileloaders.WithVersion(&version))
+		}
+		if out.Parameter.Value != nil {
+			return file.WriteBody([]byte(*out.Parameter.Value)), nil
+		}
 	}
-	return []byte{}, nil
+	return &fileloaders.File{}, nil
 }
 
 func List(ctx context.Context, api Client, path string) ([]string, error) {
@@ -79,7 +86,7 @@ type Loader struct {
 	client Client
 }
 
-func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
+func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) (*fileloaders.File, error) {
 	return Load(ctx, l.client, path)
 }
 

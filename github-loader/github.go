@@ -19,7 +19,7 @@ type LoaderBuilder struct {
 	client *github.Client
 }
 
-func (b *LoaderBuilder) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
+func (b *LoaderBuilder) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) (*fileloaders.File, error) {
 	loader := &Loader{}
 	for _, v := range opt {
 		v(loader)
@@ -50,14 +50,14 @@ func WithAuthToken(token string) fileloaders.LoaderOption {
 
 type Builder func() *github.Client
 
-func Load(ctx context.Context, c *github.Client, path string) ([]byte, error) {
-	filePath := fileloaders.Parse(path)
-	if filePath == nil || filePath.Type != "github" || filePath.Bucket == "" {
+func Load(ctx context.Context, c *github.Client, path string) (*fileloaders.File, error) {
+	file := fileloaders.Parse(path)
+	if file == nil || file.Type != "github" || file.Bucket == "" {
 		return nil, fileloaders.ErrNotSupported
 	}
-	repoIndex := strings.Index(filePath.Path, "/")
-	repo := filePath.Path[:repoIndex]
-	filepath := filePath.Path[repoIndex+1:]
+	repoIndex := strings.Index(file.Path, "/")
+	repo := file.Path[:repoIndex]
+	filepath := file.Path[repoIndex+1:]
 	var opts *github.RepositoryContentGetOptions
 	if index := strings.LastIndex(filepath, "?"); index > 0 {
 		if query, err := url.ParseQuery(filepath[index+1:]); err != nil {
@@ -67,18 +67,18 @@ func Load(ctx context.Context, c *github.Client, path string) ([]byte, error) {
 		}
 		filepath = filepath[:index]
 	}
-	file, _, res, err := c.Repositories.GetContents(ctx, filePath.Bucket, repo, filepath, opts)
+	fileContent, _, res, err := c.Repositories.GetContents(ctx, file.Bucket, repo, filepath, opts)
 	if err != nil {
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(res.Status)
 	}
-	v, err := file.GetContent()
+	v, err := fileContent.GetContent()
 	if err != nil {
 		return nil, err
 	}
-	return []byte(v), nil
+	return file.Add(fileloaders.WithHash(fileContent.SHA)).WriteBody([]byte(v)), nil
 }
 
 func List(ctx context.Context, c *github.Client, path string) ([]string, error) {
@@ -116,7 +116,7 @@ func New(c *github.Client) fileloaders.Loader {
 	}
 }
 
-func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) ([]byte, error) {
+func (l *Loader) Load(ctx context.Context, path string, opt ...fileloaders.LoaderOption) (*fileloaders.File, error) {
 	return Load(ctx, l.client, path)
 }
 
