@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/goccha/fileloaders"
-	"github.com/google/go-github/v62/github"
+	"github.com/google/go-github/v66/github"
 )
 
 type Loader struct {
