@@ -26,7 +26,7 @@ import (
 	"github.com/goccha/fileloaders/http-loader"
 	"github.com/goccha/fileloaders/s3-loader"
 	"github.com/goccha/fileloaders/ssm-loader"
-	"github.com/google/go-github/v62/github"
+	"github.com/google/go-github/v66/github"
 	"google.golang.org/api/option"
 )
 

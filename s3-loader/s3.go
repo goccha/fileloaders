@@ -22,16 +22,18 @@ func Load(ctx context.Context, api Client, path string) (*fileloaders.File, erro
 		return nil, fileloaders.ErrNotSupported
 	}
 	var version *string
-	if index := strings.LastIndex(file.Path, "?"); index > 0 {
-		if query, err := url.ParseQuery(file.Path[index+1:]); err != nil {
+	path = file.Path
+	if index := strings.LastIndex(path, "?"); index > 0 {
+		if query, err := url.ParseQuery(path[index+1:]); err != nil {
 			return nil, err
 		} else if query.Has("version") {
 			version = aws.String(query.Get("version"))
 		}
+		path = path[:index]
 	}
 	result, err := api.GetObject(ctx, &s3.GetObjectInput{
 		Bucket:    aws.String(file.Bucket),
-		Key:       aws.String(file.Path),
+		Key:       aws.String(path),
 		VersionId: version,
 	})
 	if err != nil {
